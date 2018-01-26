@@ -84,7 +84,6 @@ void setup() {
 void loop() {
     Serial.printf("Starting a scan for %d seconds...\n\r", scan_time);
     
-    /* Can't do both of these one after the other...? */
     // BLE
     found_devices = pBLEScan->start(scan_time);
 
