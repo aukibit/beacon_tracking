@@ -13,7 +13,6 @@
 
 static const char* AKBT_TAG = "AKBT_BLE";
 
-// Use: beacons = register_beacon(&uuid, rssi, timestamp)
 static void print_result (uint8_t* uuid, int *rssi, time_t timestamp, bool new) {
     if (new) {
         ESP_LOGI(AKBT_TAG, "New beacon found!");
@@ -23,6 +22,7 @@ static void print_result (uint8_t* uuid, int *rssi, time_t timestamp, bool new) 
     ESP_LOGI(AKBT_TAG, "TIME: %lld", (long long) timestamp);
 }
 
+// Use: beacons = register_beacon(...)
 static beacon_info ** register_beacon (uint8_t* uuid, int* rssi, time_t timestamp) {
     if (numbeacons > 0) {
         for (int i = 0; i < numbeacons; i++) {
