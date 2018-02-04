@@ -1,19 +1,22 @@
-#include <stdio.h>
-
 #include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_system.h"
-#include "esp_spi_flash.h"
+#include "freertos/event_groups.h"
+
+#include "nvs_flash.h"
 
 #include "ble_iface.h"
+#include "wifi_iface.h"
 
-void app_main() {
+void app_main()
+{
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK( ret );
 
     ble_init();
-    while (true) {
-        printf("<3 - HEARTBEAT - <3\n");
-        
-        fflush(stdout);
-        vTaskDelay(200 / portTICK_PERIOD_MS);
-    }
+
+    wifi_scan();
+
 }
