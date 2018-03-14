@@ -42,6 +42,8 @@
 
 static const char *TAG = "scan";
 
+const int CONNECTED_BIT = BIT0;
+
 static esp_err_t event_handler(void *ctx, system_event_t *event)
 {
     switch (event->event_id) {
@@ -51,7 +53,7 @@ static esp_err_t event_handler(void *ctx, system_event_t *event)
             break;
         case SYSTEM_EVENT_STA_GOT_IP:
             ESP_LOGI(TAG, "SYSTEM_EVENT_STA_GOT_IP");
-            ESP_LOGI(TAG, "Got IP: %s\n",
+            ESP_LOGI(TAG, "Got IP: %s",
                      ip4addr_ntoa(&event->event_info.got_ip.ip_info.ip));
             break;
         case SYSTEM_EVENT_STA_DISCONNECTED:

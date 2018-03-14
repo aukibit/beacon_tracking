@@ -2,6 +2,7 @@
 #include "time.h"
 
 #include "esp_bt.h"
+#include "esp_heap_caps.h"
 #include "esp_gap_ble_api.h"
 #include "esp_gattc_api.h"
 #include "esp_gatt_defs.h"
@@ -12,7 +13,9 @@
 
 static const char* AKBT_TAG = "AKBT_BLE";
 
-static void print_result (uint8_t* uuid, int *rssi, time_t timestamp, bool new) {
+static void print_result (
+    uint8_t* uuid, int *rssi, time_t timestamp, bool new) {
+
     if (new) {
         ESP_LOGI(AKBT_TAG, "New beacon found!");
     }
@@ -22,31 +25,35 @@ static void print_result (uint8_t* uuid, int *rssi, time_t timestamp, bool new) 
 }
 
 // Use: beacons = register_beacon(...)
-static beacon_info ** register_beacon (uint8_t* uuid, int* rssi, time_t timestamp) {
+static beacon_info ** register_beacon (
+    uint8_t* uuid, int* rssi, time_t timestamp) {
+
     if (numbeacons > 0) {
         for (int i = 0; i < numbeacons; i++) {
-            if (memcmp(beacons[i]->uuid, uuid, ESP_UUID_LEN_128)) {
+            if (!memcmp(beacons[i]->uuid, uuid, ESP_UUID_LEN_128)) {
                 beacons[i]->rssi = *rssi;
                 beacons[i]->timestamp = timestamp;
-                print_result(beacons[i]->uuid, &beacons[i]->rssi, beacons[i]->timestamp, false);
+                print_result(   beacons[i]->uuid, 
+                                &beacons[i]->rssi, 
+                                beacons[i]->timestamp, 
+                                false);
                 break;
             }
         }
-    return beacons;
+        return beacons;
     }
 
-    beacon_info* newbeacon = (beacon_info*) malloc(sizeof(beacon_info));
-    beacon_info ** new_mem = (beacon_info **) realloc(beacons, (numbeacons + 1) * sizeof(beacon_info*));
-
+    beacon_info* newbeacon = malloc(sizeof(beacon_info));
+    beacon_info ** new_mem = realloc(beacons, (numbeacons + 1) * sizeof(beacon_info*));
     if ((new_mem == NULL) || (newbeacon == NULL)) {
+        ESP_LOGI(AKBT_TAG, "OUT OF MEMORY");
         newbeacon = (beacon_info*) realloc(newbeacon, 0);
         new_mem = (beacon_info **) realloc(new_mem, numbeacons);
         // There's not enough space to hold both. Just find the beacon in
         // beacons with the oldest timestamp and set newbeacons to that address.
         // TODO
     } else {
-        numbeacons++;
-        new_mem[numbeacons] = newbeacon;
+        new_mem[numbeacons++] = newbeacon;
     }
 
     memcpy(newbeacon->uuid, uuid, 16);
