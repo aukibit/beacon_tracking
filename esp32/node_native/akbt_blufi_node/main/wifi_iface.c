@@ -1,8 +1,17 @@
+#include <string.h>
+
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "freertos/event_groups.h"
+#include "esp_system.h"
 #include "esp_wifi.h"
-#include "esp_log.h"
 #include "esp_event_loop.h"
+#include "esp_log.h"
+#include "lwip/err.h"
+#include "lwip/sockets.h"
+#include "lwip/sys.h"
+#include "lwip/netdb.h"
+#include "lwip/dns.h"
 
 #include "wifi_iface.h"
 
@@ -40,24 +49,25 @@
 #define DEFAULT_AUTHMODE WIFI_AUTH_OPEN
 #endif /*CONFIG_FAST_SCAN_THRESHOLD*/
 
-static const char *TAG = "scan";
-
+static const char* AKBT_TAG = "AKBT_WIFI";
 const int CONNECTED_BIT = BIT0;
+static EventGroupHandle_t wifi_event_group;
 
 static esp_err_t event_handler(void *ctx, system_event_t *event)
 {
     switch (event->event_id) {
         case SYSTEM_EVENT_STA_START:
-            ESP_LOGI(TAG, "SYSTEM_EVENT_STA_START");
+            ESP_LOGI(AKBT_TAG, "SYSTEM_EVENT_STA_START");
             ESP_ERROR_CHECK(esp_wifi_connect());
             break;
         case SYSTEM_EVENT_STA_GOT_IP:
-            ESP_LOGI(TAG, "SYSTEM_EVENT_STA_GOT_IP");
-            ESP_LOGI(TAG, "Got IP: %s",
+            ESP_LOGI(AKBT_TAG, "SYSTEM_EVENT_STA_GOT_IP");
+            ESP_LOGI(AKBT_TAG, "Got IP: %s",
                      ip4addr_ntoa(&event->event_info.got_ip.ip_info.ip));
+            xEventGroupSetBits(wifi_event_group, CONNECTED_BIT);
             break;
         case SYSTEM_EVENT_STA_DISCONNECTED:
-            ESP_LOGI(TAG, "SYSTEM_EVENT_STA_DISCONNECTED");
+            ESP_LOGI(AKBT_TAG, "SYSTEM_EVENT_STA_DISCONNECTED");
             ESP_ERROR_CHECK(esp_wifi_connect());
             break;
         default:
@@ -66,12 +76,13 @@ static esp_err_t event_handler(void *ctx, system_event_t *event)
     return ESP_OK;
 }
 
+
 /* Initialize Wi-Fi as sta and set scan method */
-void wifi_scan(void)
+void wifi_start(void)
 {
     tcpip_adapter_init();
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
-
+    wifi_event_group = xEventGroupCreate();
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
     wifi_config_t wifi_config = {
@@ -87,4 +98,13 @@ void wifi_scan(void)
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
+    xEventGroupWaitBits(
+        wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
+}
+
+void http_handler (http_context_t http_ctx, void* ctx) {
+    //http_response_begin(http_ctx, 200, "application/json", response_size);
+    http_response_set_header(http_ctx, "Content-disposition", "inline");
+    // http_response_write(http_ctx, beacon_mem);
+    http_response_end(http_ctx);
 }

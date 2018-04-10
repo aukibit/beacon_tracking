@@ -4,12 +4,12 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 
-#include "esp_wifi.h"
 #include "nvs_flash.h"
+
+#include "http_server.h"
 
 #include "ble_iface.h"
 #include "wifi_iface.h"
-
 
 void app_main()
 {
@@ -21,11 +21,17 @@ void app_main()
     ESP_ERROR_CHECK( ret );
 
 
-    // At the moment about one time in ten the thing won't automatically
-    // reboot. Need to sort this out or else we're technically looking at
-    // a thirty second boot time.
-    wifi_scan();
     ble_init();
+
+    // server config setup
+    wifi_start();
+
+    // For whatever reason, this all has to be in app_main()
+    http_server_t server;
+    http_server_options_t http_options = HTTP_SERVER_OPTIONS_DEFAULT();
+    ESP_ERROR_CHECK( http_server_start(&http_options, &server));
+    ESP_ERROR_CHECK(http_register_handler(
+        server, "/", HTTP_GET, HTTP_HANDLE_RESPONSE, &http_handler, NULL))
 
     // TODO:
     // set_time();
