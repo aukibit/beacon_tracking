@@ -13,6 +13,7 @@
 #include "lwip/netdb.h"
 #include "lwip/dns.h"
 
+#include "ble_iface.h"
 #include "wifi_iface.h"
 
 #if CONFIG_WIFI_ALL_CHANNEL_SCAN
@@ -103,8 +104,24 @@ void wifi_start(void)
 }
 
 void http_handler (http_context_t http_ctx, void* ctx) {
-    //http_response_begin(http_ctx, 200, "application/json", response_size);
-    http_response_set_header(http_ctx, "Content-disposition", "inline");
-    // http_response_write(http_ctx, beacon_mem);
+    
+    // Now basically loop this for numbeacons
+    int res_size = 70;
+    char res [res_size];
+    
+    // TODO: Make UUID human readable
+    sprintf(res, 
+            "UUID: %s - RSSI: %d - TIMESTAMP: %ld\n\r",
+            beacons[0]->uuid,
+            beacons[0]->rssi,
+            beacons[0]->timestamp);
+
+    http_buffer_t res_buffer = {
+        .data = res,
+        .size = 0, // null-terminated string
+        .data_is_persistent = true // data is in constant RAM;
+    };
+    http_response_begin(http_ctx, 200, "text/html", HTTP_RESPONSE_SIZE_UNKNOWN);
+    http_response_write(http_ctx, &res_buffer);
     http_response_end(http_ctx);
 }

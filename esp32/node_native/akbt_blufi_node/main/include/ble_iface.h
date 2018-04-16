@@ -11,5 +11,6 @@ beacon_info ** beacons;
 uint8_t numbeacons;
 
 void ble_init (void);
+size_t ble_stringify(char * strptr);
 
 #endif

@@ -17,11 +17,11 @@ static void print_result (
     uint8_t* uuid, int *rssi, time_t timestamp, bool new) {
 
     if (new) {
-        ESP_LOGI(AKBT_TAG, "New beacon found!");
+        ESP_LOGD(AKBT_TAG, "New beacon found!");
     }
-    esp_log_buffer_hex("AKBT_BLE: UUID: ", uuid, ESP_UUID_LEN_128);
-    ESP_LOGI(AKBT_TAG, "RSSI: %d", *rssi);
-    ESP_LOGI(AKBT_TAG, "TIME: %lld", (long long) timestamp);
+    ESP_LOG_BUFFER_HEX_LEVEL("AKBT_BLE: UUID: ", uuid, ESP_UUID_LEN_128, ESP_LOG_DEBUG);
+    ESP_LOGD(AKBT_TAG, "RSSI: %d", *rssi);
+    ESP_LOGD(AKBT_TAG, "TIME: %lld", (long long) timestamp);
 }
 
 // Use: beacons = register_beacon(...)
@@ -170,3 +170,4 @@ void ble_init (void) {
     numbeacons = 0;
     beacons = NULL;
 }
+
