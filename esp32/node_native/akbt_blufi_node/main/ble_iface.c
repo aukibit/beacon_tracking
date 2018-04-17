@@ -11,58 +11,55 @@
 
 #include "ble_iface.h"
 
+#define BCN_HUMAN_READABLE_STR  "MAJOR: %d - MINOR: %d - "\
+                                "RSSI: %d - TIMESTAMP: %ld"
+
 static const char* AKBT_TAG = "AKBT_BLE";
 
-static void print_result (
-    uint8_t* uuid, int *rssi, time_t timestamp, bool new) {
-
-    if (new) {
-        ESP_LOGD(AKBT_TAG, "New beacon found!");
-    }
-    ESP_LOG_BUFFER_HEX_LEVEL("AKBT_BLE: UUID: ", uuid, ESP_UUID_LEN_128, ESP_LOG_DEBUG);
-    ESP_LOGD(AKBT_TAG, "RSSI: %d", *rssi);
-    ESP_LOGD(AKBT_TAG, "TIME: %lld", (long long) timestamp);
+static void print_beacon (beacon_info * bcn) {
+    ESP_LOGD (  AKBT_TAG, BCN_HUMAN_READABLE_STR,
+                bcn->major, bcn->minor, bcn->rssi, bcn->timestamp);
 }
 
-// Use: beacons = register_beacon(...)
-static beacon_info ** register_beacon (
-    uint8_t* uuid, int* rssi, time_t timestamp) {
+static void register_beacon (
+    esp_ble_ibeacon_t * new_bcn, int * rssi, time_t timestamp) {
 
     if (numbeacons > 0) {
         for (int i = 0; i < numbeacons; i++) {
-            if (!memcmp(beacons[i]->uuid, uuid, ESP_UUID_LEN_128)) {
+            if ((beacons[i]->major == new_bcn->ibeacon_vendor.major) &&
+                (beacons[i]->minor == new_bcn->ibeacon_vendor.minor)) {
                 beacons[i]->rssi = *rssi;
                 beacons[i]->timestamp = timestamp;
-                print_result(   beacons[i]->uuid, 
-                                &beacons[i]->rssi, 
-                                beacons[i]->timestamp, 
-                                false);
-                break;
+                ESP_LOGD(AKBT_TAG, "Old Beacon");
+                print_beacon(beacons[i]);
+                return;
             }
         }
-        return beacons;
     }
-
-    beacon_info* newbeacon = malloc(sizeof(beacon_info));
+    beacon_info * beacon_ptr = malloc(sizeof(beacon_info));
     beacon_info ** new_mem = realloc(beacons, (numbeacons + 1) * sizeof(beacon_info*));
-    if ((new_mem == NULL) || (newbeacon == NULL)) {
-        ESP_LOGI(AKBT_TAG, "OUT OF MEMORY");
-        newbeacon = (beacon_info*) realloc(newbeacon, 0);
-        new_mem = (beacon_info **) realloc(new_mem, numbeacons);
-        // There's not enough space to hold both. Just find the beacon in
-        // beacons with the oldest timestamp and set newbeacons to that address.
-        // TODO
-    } else {
-        new_mem[numbeacons++] = newbeacon;
+
+    if ((new_mem == NULL) || (beacon_ptr == NULL)) {
+        ESP_LOGE(AKBT_TAG, "OUT OF MEMORY");
+        // TODO: 
+        // There's not enough space to hold the new beacon. Just find the beacon
+        // in beacons with the oldest timestamp overwrite it.
+        free(beacon_ptr);
+        free(new_mem);
+        return;
     }
 
-    memcpy(newbeacon->uuid, uuid, 16);
-    newbeacon->rssi = *rssi;
-    newbeacon->timestamp = timestamp;
+    beacons = new_mem;
+    beacons[numbeacons++] = beacon_ptr;
 
-    print_result(new_mem[numbeacons]->uuid, &new_mem[numbeacons]->rssi, new_mem[numbeacons]->timestamp, true);
+    beacon_ptr->major = new_bcn->ibeacon_vendor.major;
+    beacon_ptr->minor = new_bcn->ibeacon_vendor.minor;
+    beacon_ptr->rssi = *rssi;
+    beacon_ptr->timestamp = timestamp;
 
-    return new_mem;
+    ESP_LOGD(AKBT_TAG, "New Beacon");
+    print_beacon(beacon_ptr);
+
 }
 
 static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
@@ -104,8 +101,8 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
         case ESP_GAP_SEARCH_INQ_RES_EVT:
             /* Search for BLE iBeacon Packet */
             if (esp_ble_is_ibeacon_packet(scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len)){
-                esp_ble_ibeacon_t *ibeacon_data = (esp_ble_ibeacon_t*)(scan_result->scan_rst.ble_adv);
-                beacons = register_beacon(ibeacon_data->ibeacon_vendor.proximity_uuid, &scan_result->scan_rst.rssi, time(0));
+                register_beacon((esp_ble_ibeacon_t*)(scan_result->scan_rst.ble_adv), &scan_result->scan_rst.rssi, time(0));
+                // beacons = register_beacon(ibeacon_data->ibeacon_vendor.proximity_uuid, &scan_result->scan_rst.rssi, time(0));
             }
             break;
         default:
@@ -141,8 +138,6 @@ static void ble_ibeacon_appRegister(void)
 {
     esp_err_t status;
 
-    ESP_LOGI(AKBT_TAG, "register callback");
-
     //register the scan callback function to the gap module
     if ((status = esp_ble_gap_register_callback(esp_gap_cb)) != ESP_OK) {
         ESP_LOGE(AKBT_TAG, "gap register error, error code = %x", status);
@@ -171,3 +166,8 @@ void ble_init (void) {
     beacons = NULL;
 }
 
+void beacon_info_to_string (beacon_info * bcn, char * charbuf, int buflen) {
+    // TODO: Make UUID human readable
+    snprintf(   charbuf, buflen, BCN_HUMAN_READABLE_STR,
+                bcn->major, bcn->minor, bcn->rssi, bcn->timestamp);
+}

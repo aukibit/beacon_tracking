@@ -52,7 +52,7 @@
 
 static const char* AKBT_TAG = "AKBT_WIFI";
 const int CONNECTED_BIT = BIT0;
-static EventGroupHandle_t wifi_event_group;
+EventGroupHandle_t wifi_event_group;
 
 static esp_err_t event_handler(void *ctx, system_event_t *event)
 {
@@ -105,22 +105,40 @@ void wifi_start(void)
 
 void http_handler (http_context_t http_ctx, void* ctx) {
     
-    // Now basically loop this for numbeacons
-    int res_size = 70;
+    int bcn_max_chars = 70; // estimate
+    int mac_addr_length = 24;
+    int res_size = mac_addr_length + bcn_max_chars * numbeacons;
     char res [res_size];
-    
-    // TODO: Make UUID human readable
-    sprintf(res, 
-            "UUID: %s - RSSI: %d - TIMESTAMP: %ld\n\r",
-            beacons[0]->uuid,
-            beacons[0]->rssi,
-            beacons[0]->timestamp);
+    memset (res, 0, res_size); 
+
+    uint8_t mac_container[6];
+    uint8_t * mac_ptr = malloc(sizeof(uint8_t*));
+    char mac_addr[mac_addr_length]; // "MAC: xx:xx:xx:xx:xx:xx"
+    ESP_ERROR_CHECK(esp_efuse_mac_get_default(mac_ptr));
+    memcpy(mac_container, mac_ptr, 6);
+    snprintf(mac_addr, mac_addr_length, "MAC: %x:%x:%x:%x:%x:%x", 
+            mac_container[0], mac_container[1], mac_container[2],
+            mac_container[3], mac_container[4], mac_container[5]);
+    strcat(res, mac_addr);
+    strcat(res, "<br />");
+    free(mac_ptr);
+
+    char bcn[bcn_max_chars];
+    for (int i = 0; i < numbeacons; i++) {
+        memset(bcn, 0, bcn_max_chars);
+        beacon_info_to_string(beacons[i], bcn, bcn_max_chars);
+        strcat(res, bcn);
+        strcat(res, "<br />");
+    }    
 
     http_buffer_t res_buffer = {
         .data = res,
         .size = 0, // null-terminated string
         .data_is_persistent = true // data is in constant RAM;
     };
+
+    ESP_LOGI(AKBT_TAG, "About to print %s", res);
+
     http_response_begin(http_ctx, 200, "text/html", HTTP_RESPONSE_SIZE_UNKNOWN);
     http_response_write(http_ctx, &res_buffer);
     http_response_end(http_ctx);
