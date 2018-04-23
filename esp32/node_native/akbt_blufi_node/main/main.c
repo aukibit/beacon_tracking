@@ -9,6 +9,7 @@
 #include "http_server.h"
 
 #include "ble_iface.h"
+#include "sntp_iface.h"
 #include "wifi_iface.h"
 
 void app_main()
@@ -34,5 +35,5 @@ void app_main()
         server, "/", HTTP_GET, HTTP_HANDLE_RESPONSE, &http_handler, NULL))
 
     // TODO:
-    // set_time();
+    set_time();
 }

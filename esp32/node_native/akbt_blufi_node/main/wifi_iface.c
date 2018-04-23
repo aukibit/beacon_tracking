@@ -77,11 +77,25 @@ static esp_err_t event_handler(void *ctx, system_event_t *event)
     return ESP_OK;
 }
 
-
-/* Initialize Wi-Fi as sta and set scan method */
 void wifi_start(void)
 {
     tcpip_adapter_init();
+
+    /* 
+    FIXME: For some reason this code (which sets static IP)
+    causes the http_handler callback not to get called? 
+    And when it does work, it'll randomly throw a heap error after a 
+    couple of callbacks...
+    */
+    /*
+    tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA); // Don't run a DHCP client
+    tcpip_adapter_ip_info_t ip_info;
+    inet_pton(AF_INET, DEVICE_IP, &ip_info.ip);
+    inet_pton(AF_INET, DEVICE_GW, &ip_info.gw);
+    inet_pton(AF_INET, DEVICE_NETMASK, &ip_info.netmask);
+    tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_STA, &ip_info);
+    //*/
+    
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
     wifi_event_group = xEventGroupCreate();
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -104,12 +118,20 @@ void wifi_start(void)
 }
 
 void http_handler (http_context_t http_ctx, void* ctx) {
-    
+
+    if (!heap_caps_check_integrity_all(true)) {
+        ESP_LOGE(AKBT_TAG, "Heap corrupt at the start of http_handler func");
+    }
+
     int bcn_max_chars = 70; // estimate
     int mac_addr_length = 24;
     int res_size = mac_addr_length + bcn_max_chars * numbeacons;
     char res [res_size];
     memset (res, 0, res_size); 
+
+    if (!heap_caps_check_integrity_all(true)) {
+        ESP_LOGE(AKBT_TAG, "Heap corrupt after allocating res space");
+    }
 
     uint8_t mac_container[6];
     uint8_t * mac_ptr = malloc(sizeof(uint8_t*));
@@ -123,6 +145,10 @@ void http_handler (http_context_t http_ctx, void* ctx) {
     strcat(res, "<br />");
     free(mac_ptr);
 
+    if (!heap_caps_check_integrity_all(true)) {
+        ESP_LOGE(AKBT_TAG, "Heap corrupt after doing mac addr operations");
+    }
+
     char bcn[bcn_max_chars];
     for (int i = 0; i < numbeacons; i++) {
         memset(bcn, 0, bcn_max_chars);
@@ -130,6 +156,10 @@ void http_handler (http_context_t http_ctx, void* ctx) {
         strcat(res, bcn);
         strcat(res, "<br />");
     }    
+
+    if (!heap_caps_check_integrity_all(true)) {
+        ESP_LOGE(AKBT_TAG, "Heap corrupt after creating a beacon string");
+    }
 
     http_buffer_t res_buffer = {
         .data = res,
@@ -142,4 +172,10 @@ void http_handler (http_context_t http_ctx, void* ctx) {
     http_response_begin(http_ctx, 200, "text/html", HTTP_RESPONSE_SIZE_UNKNOWN);
     http_response_write(http_ctx, &res_buffer);
     http_response_end(http_ctx);
+
+    if (!heap_caps_check_integrity_all(true)) {
+        ESP_LOGE(AKBT_TAG, "Heap corrupt at end of http_request");
+    }
+
+
 }

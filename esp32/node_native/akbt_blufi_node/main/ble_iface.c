@@ -167,7 +167,6 @@ void ble_init (void) {
 }
 
 void beacon_info_to_string (beacon_info * bcn, char * charbuf, int buflen) {
-    // TODO: Make UUID human readable
     snprintf(   charbuf, buflen, BCN_HUMAN_READABLE_STR,
                 bcn->major, bcn->minor, bcn->rssi, bcn->timestamp);
 }
