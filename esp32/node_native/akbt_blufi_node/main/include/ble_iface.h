@@ -11,7 +11,7 @@ typedef struct beacon_info {
 beacon_info ** beacons;
 uint8_t numbeacons;
 
-void ble_init (void);
+void ble_start (void);
 void beacon_info_to_string (beacon_info * bcn, char * str, int strlen);
 
 #endif

@@ -3,13 +3,11 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
-
 #include "nvs_flash.h"
 
 #include "http_server.h"
 
 #include "ble_iface.h"
-#include "sntp_iface.h"
 #include "wifi_iface.h"
 
 void app_main()
@@ -21,12 +19,7 @@ void app_main()
     }
     ESP_ERROR_CHECK( ret );
 
-
-    ble_init();
-
-    // server config setup
     wifi_start();
-
     // For whatever reason, this all has to be in app_main()
     http_server_t server;
     http_server_options_t http_options = HTTP_SERVER_OPTIONS_DEFAULT();
@@ -34,6 +27,5 @@ void app_main()
     ESP_ERROR_CHECK(http_register_handler(
         server, "/", HTTP_GET, HTTP_HANDLE_RESPONSE, &http_handler, NULL))
 
-    // TODO:
-    set_time();
+    ble_start();
 }
