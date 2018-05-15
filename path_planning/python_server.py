@@ -4,10 +4,10 @@ from libs import beacon, blufinode, packetrcv
 
 def node_scan(beacons, nodes):
     for node in nodes:
-
         res = urllib2.urlopen("http://" + node.ip).read().split("<br />");
         mac = res[0].split(" ")[-1]
         res_bcns = res[1:]
+
         for res_bcn in res_bcns:
             if not res_bcn:
                 continue
@@ -21,19 +21,21 @@ def node_scan(beacons, nodes):
             bcn_index = -1
             for i in range(len(beacons)):
                 if ((beacons[i].major == major) and (beacons[i].minor == minor)):
-                    if bcn_index > -1:
-                        print "ERROR: BEACON ALREADY EXISTS"
                     bcn_index = i
             if bcn_index == -1:
                 beacons.append(beacon.Beacon(major, minor))
-            beacons[-1].new_rcv(packetrcv.PacketRcv(node, timestamp, rssi))
-
+            beacons[bcn_index].new_rcv(packetrcv.PacketRcv(node, timestamp, rssi))
 
 if __name__ == "__main__":
     beacons = []
+    
+    # intialise known node data
     nodes = [blufinode.BlufiNode("192.168.0.12", "24:a:c4:13:92:cc")]
 
+    # get the beacon data from the known nodes
     node_scan(beacons, nodes)
 
+    # debug, more or less
+    print "~*~*~*~ RAW BEACON DATA ~*~*~*~"
     for beacon in beacons:
         print beacon

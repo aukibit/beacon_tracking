@@ -3,7 +3,8 @@ class Beacon:
     def __init__(self, major, minor):
         self.major = major
         self.minor = minor
-    
+        self._rcvs = []
+
     def __repr__(self):
         return "Major: " + self.major + ", Minor: " + self.minor + ", Receives ->\n\r" + self.read_rcvs()
 
@@ -15,5 +16,3 @@ class Beacon:
         for rcv in self._rcvs:
             ret += rcv.__repr__() + "\n\r"
         return ret
-
-    _rcvs = []
