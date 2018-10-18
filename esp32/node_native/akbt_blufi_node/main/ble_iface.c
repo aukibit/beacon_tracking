@@ -17,7 +17,7 @@
 static const char* AKBT_TAG = "AKBT_BLE";
 
 static void print_beacon (beacon_info * bcn) {
-    ESP_LOGD (  AKBT_TAG, BCN_HUMAN_READABLE_STR,
+    ESP_LOGI (  AKBT_TAG, BCN_HUMAN_READABLE_STR,
                 bcn->major, bcn->minor, bcn->rssi, bcn->timestamp);
 }
 

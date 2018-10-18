@@ -7,6 +7,7 @@ def node_scan(beacons, nodes):
         res = urllib2.urlopen("http://" + node.ip).read().split("<br />");
         mac = res[0].split(" ")[-1]
         res_bcns = res[1:]
+        print res
 
         for res_bcn in res_bcns:
             if not res_bcn:
@@ -27,15 +28,18 @@ def node_scan(beacons, nodes):
             beacons[bcn_index].new_rcv(packetrcv.PacketRcv(node, timestamp, rssi))
 
 if __name__ == "__main__":
-    beacons = []
-    
-    # intialise known node data
-    nodes = [blufinode.BlufiNode("192.168.0.12", "24:a:c4:13:92:cc")]
+    while (True):
+        beacons = []
+        
+        # intialise known node data
+        nodes = [blufinode.BlufiNode("192.168.0.18", "24:a:c4:13:92:cc", 10, 12)]
 
-    # get the beacon data from the known nodes
-    node_scan(beacons, nodes)
+        # get the beacon data from the known nodes
+        node_scan(beacons, nodes)
 
-    # debug, more or less
-    print "~*~*~*~ RAW BEACON DATA ~*~*~*~"
-    for beacon in beacons:
-        print beacon
+        # debug, more or less
+        print "~*~*~*~ RAW BEACON DATA ~*~*~*~"
+        for beacon in beacons:
+            print beacon
+
+        # given known node positions, give positions of beacons

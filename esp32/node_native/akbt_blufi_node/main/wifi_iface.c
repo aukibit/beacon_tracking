@@ -43,6 +43,23 @@ static esp_err_t event_handler(void *ctx, system_event_t *event)
 void wifi_start(void)
 {
     tcpip_adapter_init();
+    /* Static IP */
+	// For using of static IP
+	tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA); // Don't run a DHCP client
+
+	// Set static IP
+	tcpip_adapter_ip_info_t ipInfo;
+	inet_pton(AF_INET, DEVICE_IP, &ipInfo.ip);
+	inet_pton(AF_INET, DEVICE_GW, &ipInfo.gw);
+	inet_pton(AF_INET, DEVICE_NETMASK, &ipInfo.netmask);
+	tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_STA, &ipInfo);
+
+	// Set Main DNS server
+	tcpip_adapter_dns_info_t dnsInfo;
+	inet_pton(AF_INET, DNS_SERVER, &dnsInfo.ip);
+	tcpip_adapter_set_dns_info(TCPIP_ADAPTER_IF_STA, TCPIP_ADAPTER_DNS_MAIN, &dnsInfo);
+    /* --------- */
+
     wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK( esp_event_loop_init(event_handler, NULL) );
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -54,7 +71,7 @@ void wifi_start(void)
             .password = WIFI_PASS,
         },
     };
-    ESP_LOGI(AKBT_TAG, "Setting WiFi configuration SSID %s...", wifi_config.sta.ssid);
+    ESP_LOGD(AKBT_TAG, "Setting WiFi configuration SSID %s...", wifi_config.sta.ssid);
     ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
     ESP_ERROR_CHECK( esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config) );
     ESP_ERROR_CHECK( esp_wifi_start() );

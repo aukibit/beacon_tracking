@@ -6,9 +6,10 @@
 #define WIFI_SSID "NETGEAR44"
 #define WIFI_PASS "huskytomato221"
 
-#define DEVICE_IP "192.168.0.14"
+#define DEVICE_IP "192.168.0.69"
 #define DEVICE_GW "192.168.0.1"
 #define DEVICE_NETMASK "255.255.255.0"
+#define DNS_SERVER "8.8.8.8"
 
 void wifi_start(void);
 void http_handler (http_context_t http_ctx, void* ctx);
