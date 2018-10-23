@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import urllib2
-from libs import beacon, blufinode, packetrcv
+from libs import beacon, blufinode, packetrcv, circle_intersection
+
+import matplotlib.pyplot as plt
 
 def node_scan(beacons, nodes):
     for node in nodes:
@@ -44,3 +46,7 @@ if __name__ == "__main__":
             print data
 
         # given known node positions, give positions of beacons
+        # for each beacon
+            # create Positions for each measurement
+            # calculate the intersection point
+            # if there's no intersection point, forget it then
