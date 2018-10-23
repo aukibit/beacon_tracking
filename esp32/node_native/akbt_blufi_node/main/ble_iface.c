@@ -11,13 +11,14 @@
 
 #include "ble_iface.h"
 
-#define BCN_HUMAN_READABLE_STR  "MAJOR: %d - MINOR: %d - "\
+#define BCN_HUMAN_READABLE_STR  "MAJOR: %u - MINOR: %u - "\
                                 "RSSI: %d - TIMESTAMP: %ld"
+
 
 static const char* AKBT_TAG = "AKBT_BLE";
 
 static void print_beacon (beacon_info * bcn) {
-    ESP_LOGI (  AKBT_TAG, BCN_HUMAN_READABLE_STR,
+    ESP_LOGD (  AKBT_TAG, BCN_HUMAN_READABLE_STR,
                 bcn->major, bcn->minor, bcn->rssi, bcn->timestamp);
 }
 
@@ -26,8 +27,8 @@ static void register_beacon (
 
     if (numbeacons > 0) {
         for (int i = 0; i < numbeacons; i++) {
-            if ((beacons[i]->major == new_bcn->ibeacon_vendor.major) &&
-                (beacons[i]->minor == new_bcn->ibeacon_vendor.minor)) {
+            if ((beacons[i]->major == __builtin_bswap16(new_bcn->ibeacon_vendor.major)) &&
+                (beacons[i]->minor == __builtin_bswap16(new_bcn->ibeacon_vendor.minor))) {
                 beacons[i]->rssi = *rssi;
                 beacons[i]->timestamp = timestamp;
                 ESP_LOGD(AKBT_TAG, "Old Beacon");
@@ -52,8 +53,9 @@ static void register_beacon (
     beacons = new_mem;
     beacons[numbeacons++] = beacon_ptr;
 
-    beacon_ptr->major = new_bcn->ibeacon_vendor.major;
-    beacon_ptr->minor = new_bcn->ibeacon_vendor.minor;
+    // The ESP32 is big-endian, so you have to swap the byte
+    beacon_ptr->major = __builtin_bswap16(new_bcn->ibeacon_vendor.major);
+    beacon_ptr->minor = __builtin_bswap16(new_bcn->ibeacon_vendor.minor);
     beacon_ptr->rssi = *rssi;
     beacon_ptr->timestamp = timestamp;
 
@@ -102,7 +104,8 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
             /* Search for BLE iBeacon Packet */
             if (esp_ble_is_ibeacon_packet(scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len)){
                 register_beacon((esp_ble_ibeacon_t*)(scan_result->scan_rst.ble_adv), &scan_result->scan_rst.rssi, time(0));
-                // beacons = register_beacon(ibeacon_data->ibeacon_vendor.proximity_uuid, &scan_result->scan_rst.rssi, time(0));
+            } else {
+                register_beacon((esp_ble_ibeacon_t*)(scan_result->scan_rst.ble_adv), &scan_result->scan_rst.rssi, time(0));
             }
             break;
         default:
