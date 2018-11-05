@@ -8,7 +8,7 @@ class PacketRcv:
 
     def __repr__(self):
         return self.node.__repr__() + ", RSSI: " + self.rssi + \
-               str(", Distance: %.2f" % self.distance) + "m, Timestamp: " + \
+               str(", Distance: %.2f" % self.distance) + "cm, Timestamp: " + \
                self.timestamp
 
     def calculate_distance(self):
@@ -22,4 +22,4 @@ class PacketRcv:
         if ratio < 1:
             return ratio ** 10
 
-        return (0.89976)*(ratio**7.7095) + 0.111;    
+        return 100*(0.89976)*(ratio**7.7095) + 0.111;
