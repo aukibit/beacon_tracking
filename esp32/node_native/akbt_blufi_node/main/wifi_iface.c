@@ -86,11 +86,17 @@ void wifi_start(void)
     struct tm timeinfo = { 0 };
     time(&now);
     localtime_r(&now, &timeinfo);
-    while(timeinfo.tm_year < (2016 - 1900)) {
+    int retry = 0;
+    const int retry_count = 10;
+    while((timeinfo.tm_year < (2016 - 1900)) && (++retry < retry_count)) {
         vTaskDelay(2000 / portTICK_PERIOD_MS);
         time(&now);
         localtime_r(&now, &timeinfo);
     }
+    if(retry >= retry_count) {
+        ESP_LOGW(AKBT_TAG, "Did not get time from pool.ntp.org.");
+    }
+
 }
 
 void http_handler (http_context_t http_ctx, void* ctx) {
