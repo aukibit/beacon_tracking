@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-import urllib2
+import urllib2, numpy
 from libs import beacon, blufinode, packetrcv, circle_intersection
 
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 def node_scan(beacons, nodes):
     for node in nodes:
@@ -25,51 +26,68 @@ def node_scan(beacons, nodes):
                 if ((beacons[i].major == major) and (beacons[i].minor == minor)):
                     bcn_index = i
             if bcn_index == -1:
-                beacons.append(beacon.Beacon(major, minor))
+                # only update beacons that are ours and that we care about
+                continue
+                # beacons.append(beacon.Beacon(major, minor))
             beacons[bcn_index].new_rcv(packetrcv.PacketRcv(node, timestamp, rssi))
 
-if __name__ == "__main__":
-    # plt.ion()
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111)
-    # plt.xlabel ("X-Distance (cm)")
-    # plt.ylabel ("Y-Distance (cm)")
-    # plt.title ("Estimated Beacon Position with Known Node Positions (2)")
+def find_closest_node(bcn):
+    closest_node = bcn._rcvs[0]
+    if len(bcn._rcvs) < 1:
+        return closest_node
+
+    for rcv in bcn._rcvs:
+        if rcv.distance < closest_node.distance:
+            closest_node = rcv
+
+    return closest_node
+
+def animate(i, nodes, beacons, node_colours):
+    node_scan(beacons, nodes)
+
+    ax.clear()
+
+    # Draw the map
+    ax.hlines([-3, 3], [-3, 3], [15, 15], colors='lightgray')
+    ax.vlines([-3, 3], [-3, 3], [15, 15], colors='lightgray')
+    # Draw the nodes
+    for i in range(len(nodes)):
+        circle = plt.Circle((nodes[i].xpos, nodes[i].ypos), 2, color=node_colours[i])
+        ax.add_artist(circle)
+        plt.text(nodes[i].xpos, nodes[i].ypos+2, nodes[i].ip, size = 10, ha="center", va="center",
+            bbox=dict(boxstyle="round", ec=(1., 0.5, 0.5), fc=(1., 0.8, 0.8)))
 
 
-    while (True):
-        beacons = []
-        
-        # intialise known node data
-        nodes = [blufinode.BlufiNode("192.168.1.69", "30:ae:a4:0a:c0:80", 0, 0)]
-        nodes = [blufinode.BlufiNode("192.168.1.70", "24:0a:c4:13:92:cc", 0, 0)]
-
-        # get the beacon data from the known nodes
-        node_scan(beacons, nodes)
-
-        if len(beacons) == 0:
+    # Draw the beacons
+    for bcn in beacons:
+        if len(bcn._rcvs) < 1:
             continue
-        
-        # debug
-        print beacons
+        closest_node = find_closest_node(bcn)
+        circle = plt.Circle((closest_node.node.xpos, closest_node.node.ypos), 0.5, color='teal')
+        ax.add_artist(circle)
+        plt.text(closest_node.node.xpos, closest_node.node.ypos-2, 
+            "Major: " + bcn.major + "\nMinor: " + bcn.minor, size = 10, ha="center", va="center",
+            bbox=dict(boxstyle="round", ec=(1., 0.5, 0.5), fc=(1., 0.8, 0.8)))
 
-        # for bcn in beacons:
-        #     if len(bcn._rcvs) > 1:
-        #         pos0 = circle_intersection.Position(bcn._rcvs[0].node.xpos, bcn._rcvs[0].node.ypos, bcn._rcvs[0].distance)
-        #         pos1 = circle_intersection.Position(bcn._rcvs[1].node.xpos, bcn._rcvs[1].node.ypos, bcn._rcvs[1].distance)
-        #         x1, x2, y1, y2 = circle_intersection.intersectTwoCircles(pos0, pos1)
-        #         if x1 == x2 == y1 == y2 == 0:
-        #             x1, x2, y1, y2 = circle_intersection.intersectTwoCircles(pos1, pos0)
-        #             if x1 == x2 == y1 == y2 == 0:
-        #                 continue
+    # Set up the axes
+    ax.set_xlim((-15, 15))
+    ax.set_ylim((-15, 15))
+    ax.set_aspect('equal', 'box')
+    ax.set_xlabel("X-Coordinate")
+    ax.set_ylabel("Y-Coordinate")
+    ax.set_title("Closest Node to Beacon")
 
-        #         ax.add_artist(pos0.circle(colorstr='b'))
-        #         ax.add_artist(pos1.circle(colorstr='r'))
-        #         ax.plot([x1, x2], [y1, y2], 'ko')
-                
-        #         ax.set_xlim((-100, 100))
-        #         ax.set_ylim((-100, 100))
-        #         ax.set_aspect(1)
 
-        #         fig.canvas.flush_events()
+if __name__ == "__main__":
+    # intialise known node data
+    nodes = [blufinode.BlufiNode("192.168.1.69", "24:0a:c4:13:92:cc", 0, 5)]
+    nodes += [blufinode.BlufiNode("192.168.1.70", "30:ae:a4:0a:c0:80", 10, 0)]
 
+    beacons = [beacon.Beacon("1","3"), beacon.Beacon("1","1"), beacon.Beacon("1","2")]
+
+    node_colours = ["mediumseagreen", "darkorange", "darkturquoise"]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ani = animation.FuncAnimation(fig, animate, fargs=(nodes, beacons, node_colours), interval = 1)
+    plt.show()

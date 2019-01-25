@@ -9,6 +9,10 @@ class Beacon:
         return "Major: " + self.major + ", Minor: " + self.minor + ", Receives ->\n\r" + self.read_rcvs()
 
     def new_rcv(self, packet):
+        for i in range(len(self._rcvs)):
+            if packet.node.mac == self._rcvs[i].node.mac:
+                self._rcvs[i] = packet
+                return
         self._rcvs.append(packet)
 
     def read_rcvs(self):
